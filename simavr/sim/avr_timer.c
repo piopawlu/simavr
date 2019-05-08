@@ -89,7 +89,7 @@ avr_timer_comp(
 		case avr_timer_com_toggle: // Toggle OCnA on compare match
 			if (p->comp[comp].com_pin.reg)	// we got a physical pin
 				avr_raise_irq(irq,
-						AVR_IOPORT_OUTPUT |
+						// AVR_IOPORT_OUTPUT |
 						(avr_regbit_get(avr, p->comp[comp].com_pin) ? 0 : 1));
 			else // no pin, toggle the IRQ anyway
 				avr_raise_irq(irq,
