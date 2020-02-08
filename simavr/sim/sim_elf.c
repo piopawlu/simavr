@@ -422,7 +422,7 @@ elf_read_firmware(
 	if (data_data) {
 	//	hdump("data", data_data->d_buf, data_data->d_size);
 		memcpy(firmware->flash + offset, data_data->d_buf, data_data->d_size);
-		AVR_LOG(NULL, LOG_DEBUG, "Loaded %zu .data\n", data_data->d_size);
+		AVR_LOG(NULL, LOG_DEBUG, "Loaded %zu .data at address 0x%x\n", data_data->d_size, offset);
 		offset += data_data->d_size;
 		firmware->datasize = data_data->d_size;
 	}
