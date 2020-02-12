@@ -83,6 +83,10 @@ typedef struct avr_usi_t {
 
 void avr_usi_init(avr_t * avr, avr_usi_t * port);
 
+#ifndef USI_OVF_vect
+#define USI_OVF_vect USI_OVERFLOW_vect
+#endif
+
 #define AVR_USI_DECLARE(_portname, _portreg, _pin_di, _pin_do, _pin_usck) \
 	.usi = { \
 		.r_usicr = USICR, \
