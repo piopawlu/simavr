@@ -1,7 +1,8 @@
 /*
-	sim_tiny4313.c
+	sim_tinyx313a.c
 
 	Copyright 2008, 2009 Michel Pollet <buserror@gmail.com>
+	                     Jon Escombe <lists@dresco.co.uk>
 
  	This file is part of simavr.
 
@@ -21,22 +22,26 @@
 
 #include "sim_avr.h"
 
-#define SIM_VECTOR_SIZE	2
-#define SIM_MMCU		"attiny4313"
-#define SIM_CORENAME	mcu_tiny4313
-
-#define _AVR_IO_H_
-#define __ASSEMBLER__
-#include "avr/iotn4313.h"
-// instantiate the new core
 #include "sim_tinyx313.h"
 
-static avr_t * make()
+void tx313_init(struct avr_t * avr)
 {
-	return avr_core_allocate(&SIM_CORENAME.core, sizeof(struct mcu_t));
+	struct mcu_t * mcu = (struct mcu_t*)avr;
+
+	avr_eeprom_init(avr, &mcu->eeprom);
+	avr_watchdog_init(avr, &mcu->watchdog);
+	avr_extint_init(avr, &mcu->extint);
+	avr_ioport_init(avr, &mcu->porta);
+	avr_ioport_init(avr, &mcu->portb);
+	avr_ioport_init(avr, &mcu->portd);
+	avr_uart_init(avr, &mcu->uart);
+	avr_timer_init(avr, &mcu->timer0);
+	avr_timer_init(avr, &mcu->timer1);
+	avr_acomp_init(avr, &mcu->acomp);
+	avr_usi_init(avr, &mcu->usi);
 }
 
-avr_kind_t tiny4313 = {
-	.names = { "attiny4313" },
-	.make = make
-};
+void tx313_reset(struct avr_t * avr)
+{
+//	struct mcu_t * mcu = (struct mcu_t*)avr;
+}

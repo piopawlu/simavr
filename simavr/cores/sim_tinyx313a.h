@@ -1,7 +1,8 @@
 /*
-	sim_tiny2313.c
+	sim_tinyx313a.h
 
 	Copyright 2008, 2009 Michel Pollet <buserror@gmail.com>
+	                     Jon Escombe <lists@dresco.co.uk>
 
  	This file is part of simavr.
 
@@ -19,28 +20,24 @@
 	along with simavr.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+
+#ifndef __SIM_TINYX313A_H__
+#define __SIM_TINYX313A_H__
+
+#include "sim_core_declare.h"
 #include "avr_eeprom.h"
 #include "avr_watchdog.h"
 #include "avr_extint.h"
 #include "avr_ioport.h"
-#include "avr_uart.h"
 #include "avr_timer.h"
 #include "avr_acomp.h"
 #include "avr_usi.h"
+#include "avr_uart.h"
 
-static void init(struct avr_t * avr);
-static void reset(struct avr_t * avr);
+void tx313_init(struct avr_t * avr);
+void tx313_reset(struct avr_t * avr);
 
-#define _AVR_IO_H_
-#define __ASSEMBLER__
-#include "avr/iotn2313.h"
-
-#include "sim_core_declare.h"
-
-/*
- * This is a template for all of the tinyx5 devices, hopefully
- */
-static const struct mcu_t {
+struct mcu_t {
 	avr_t core;
 	avr_eeprom_t 	eeprom;
 	avr_watchdog_t	watchdog;
@@ -50,37 +47,68 @@ static const struct mcu_t {
 	avr_timer_t		timer0,timer1;
 	avr_acomp_t		acomp;
 	avr_usi_t		usi;
-} mcu = {
-	.core = {
-		.mmcu = "attiny2313",
-		DEFAULT_CORE(2),
+};
 
-		.init = init,
-		.reset = reset,
+#ifdef SIM_CORENAME
+
+#ifndef SIM_VECTOR_SIZE
+#error SIM_VECTOR_SIZE is not declared
+#endif
+#ifndef SIM_MMCU
+#error SIM_MMCU is not declared
+#endif
+
+/*
+ * This is a template for all of the tinyx313 devices, hopefully
+ */
+ const struct mcu_t SIM_CORENAME = {
+	.core = {
+		.mmcu = SIM_MMCU,
+		DEFAULT_CORE(SIM_VECTOR_SIZE),
+
+		.init = tx313_init,
+		.reset = tx313_reset,
 	},
-	AVR_EEPROM_DECLARE_8BIT(EEPROM_READY_vect),
-	AVR_WATCHDOG_DECLARE(WDTCSR, WDT_OVERFLOW_vect),
+	AVR_EEPROM_DECLARE_8BIT(EEPROM_Ready_vect),
+	AVR_WATCHDOG_DECLARE(WDTCR, WDT_OVERFLOW_vect),
 	.extint = {
-		AVR_EXTINT_TINY_DECLARE(0, 'D', 2, EIFR),
-		AVR_EXTINT_TINY_DECLARE(1, 'D', 3, EIFR),
+		AVR_EXTINT_TINY_DECLARE(0, 'D', 2, GIFR),
+		AVR_EXTINT_TINY_DECLARE(1, 'D', 3, GIFR),
 	},
-	AVR_IOPORT_DECLARE(a, 'A', A), // port A has no PCInts..
+        .porta = {
+		.name = 'A',  .r_port = PORTA, .r_ddr = DDRA, .r_pin = PINA,
+		.pcint = {
+			.enable = AVR_IO_REGBIT(GIMSK, PCIE1),
+			.raised = AVR_IO_REGBIT(GIFR, PCIF1),
+			.vector = PCINT1_vect,
+		},
+		.r_pcint = PCMSK1,
+        },
 	.portb = {
 		.name = 'B',  .r_port = PORTB, .r_ddr = DDRB, .r_pin = PINB,
 		.pcint = {
-			.enable = AVR_IO_REGBIT(GIMSK, PCIE),
-			.raised = AVR_IO_REGBIT(EIFR, PCIF),
-			.vector = PCINT_vect,
+			.enable = AVR_IO_REGBIT(GIMSK, PCIE0),
+			.raised = AVR_IO_REGBIT(GIFR, PCIF0),
+			.vector = PCINT0_vect,
 		},
 		.r_pcint = PCMSK,
 	},
-	AVR_IOPORT_DECLARE(d, 'D', D), // port D has no PCInts..
+	.portd = {
+		.name = 'D',  .r_port = PORTD, .r_ddr = DDRD, .r_pin = PIND,
+		.pcint = {
+			.enable = AVR_IO_REGBIT(GIMSK, PCIE2),
+			.raised = AVR_IO_REGBIT(GIFR, PCIF2),
+			.vector = PCINT2_vect,
+		},
+		.r_pcint = PCMSK2,
+	},
 
-	//no PRUSART, upe=UPE, no reg/bit name index, no 'C' in RX/TX vector names
-	AVR_UART_DECLARE(0, 0, UPE, , ),
+	//PRUSART, upe=UPE, no reg/bit name index, no 'C' in RX/TX vector names
+	AVR_UART_DECLARE(PRR, PRUSART, UPE, , ),
 
 	.timer0 = {
 		.name = '0',
+		.disabled = AVR_IO_REGBIT(PRR,PRTIM0),
 		.wgm = { AVR_IO_REGBIT(TCCR0A, WGM00), AVR_IO_REGBIT(TCCR0A, WGM01), AVR_IO_REGBIT(TCCR0B, WGM02) },
 		.wgm_op = {
 			[0] = AVR_TIMER_WGM_NORMAL8(),
@@ -124,7 +152,7 @@ static const struct mcu_t {
 	},
 	.timer1 = {
 		.name = '1',
-	//	.disabled = AVR_IO_REGBIT(PRR,PRTIM1),
+		.disabled = AVR_IO_REGBIT(PRR,PRTIM1),
 		.wgm = { AVR_IO_REGBIT(TCCR1A, WGM10), AVR_IO_REGBIT(TCCR1A, WGM11),
 					AVR_IO_REGBIT(TCCR1B, WGM12), AVR_IO_REGBIT(TCCR1B, WGM13) },
 		.wgm_op = {
@@ -202,37 +230,8 @@ static const struct mcu_t {
 		}
 	},
 
+	AVR_USI_DECLARE('B', PORTB, DI_BIT, DO_BIT, USCK_BIT)
 };
+#endif /* SIM_CORENAME */
 
-static avr_t * make()
-{
-	return avr_core_allocate(&mcu.core, sizeof(struct mcu_t));
-}
-
-avr_kind_t tiny2313 = {
-	.names = { "attiny2313", "attiny2313v" },
-	.make = make
-};
-
-static void init(struct avr_t * avr)
-{
-	struct mcu_t * mcu = (struct mcu_t*)avr;
-
-	avr_eeprom_init(avr, &mcu->eeprom);
-	avr_watchdog_init(avr, &mcu->watchdog);
-	avr_extint_init(avr, &mcu->extint);
-	avr_ioport_init(avr, &mcu->porta);
-	avr_ioport_init(avr, &mcu->portb);
-	avr_ioport_init(avr, &mcu->portd);
-	avr_uart_init(avr, &mcu->uart);
-	avr_timer_init(avr, &mcu->timer0);
-	avr_timer_init(avr, &mcu->timer1);
-	avr_acomp_init(avr, &mcu->acomp);
-	avr_usi_init(avr, &mcu->usi);
-}
-
-static void reset(struct avr_t * avr)
-{
-//	struct mcu_t * mcu = (struct mcu_t*)avr;
-}
-
+#endif /* __SIM_TINYX313A_H__ */
