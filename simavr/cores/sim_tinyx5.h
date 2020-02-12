@@ -52,6 +52,18 @@ struct mcu_t {
 	avr_usi_t		usi;
 };
 
+#ifndef USCK_BIT
+#define USCK_BIT 2
+#endif 
+
+#ifndef DO_BIT
+#define DO_BIT 1
+#endif
+
+#ifndef DI_BIT
+#define DI_BIT 0
+#endif
+
 #ifdef SIM_CORENAME
 
 #ifndef SIM_VECTOR_SIZE
@@ -243,7 +255,7 @@ const struct mcu_t SIM_CORENAME = {
 			},
 		},
 	},
-	AVR_USI_DECLARE('B', PORTB, 0, 1, 2)
+	AVR_USI_DECLARE('B', PORTB, DI_BIT, DO_BIT, USCK_BIT)
 };
 #endif /* SIM_CORENAME */
 
