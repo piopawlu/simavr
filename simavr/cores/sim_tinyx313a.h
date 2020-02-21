@@ -230,7 +230,7 @@ struct mcu_t {
 		}
 	},
 
-	AVR_USI_DECLARE('B', PORTB, DI_BIT, DO_BIT, USCK_BIT)
+	AVR_USI_DECLARE('B', PORTB, DI_BIT, DO_BIT, SCL_BIT)
 };
 #endif /* SIM_CORENAME */
 

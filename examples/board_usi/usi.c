@@ -28,6 +28,7 @@
 #include "avr_ioport.h"
 #include "sim_elf.h"
 #include "sim_gdb.h"
+#include "avr_usi.h"
 
 avr_t * avr = NULL;
 uint8_t	pin_state = 0;	// current port B
@@ -46,6 +47,11 @@ void pin_changed_hook(struct avr_irq_t * irq, uint32_t value, void * param)
 	pin_state = (pin_state & ~(1 << irq->irq)) | (value << irq->irq);
 
 	printf("PINB=%02x\n", value & 0x0FF);
+}
+
+void usi_dr_change_hook(struct avr_irq_t * irq, uint32_t value, void * param)
+{
+	printf("USIDR=%02x\n", value & 0x0FF);
 }
 
 static void * avr_run_thread(void * param)
@@ -84,6 +90,8 @@ int main(int argc, char *argv[])
 	avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DO_BIT), pin_changed_hook, NULL);
 	avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DI_BIT), pin_changed_hook, NULL);
 	avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), NRF24L01_CS), pin_changed_hook, NULL);
+
+	// avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_USI_GETIRQ(), )
 
 	// even if not setup at startup, activate gdb if crashing
 	avr->gdb_port = 1234;

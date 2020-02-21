@@ -88,11 +88,13 @@ int main()
 	pcbi(DI_PORT, DI_BIT); // no pull up on data input
 	psbi(PORTB,CS_BIT);
 
+	_delay_ms(1000);
+
 	while(1){
-		//_delay_ms(1000);
 		pcbi(PORTB,CS_BIT);
 		usi_spi_transmit_msb(0xAA);
 		psbi(PORTB,CS_BIT);
+		_delay_ms(1000);
 	}
 }
 

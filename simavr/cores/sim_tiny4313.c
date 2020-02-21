@@ -29,7 +29,7 @@
 #define __ASSEMBLER__
 #include "avr/iotn4313.h"
 // instantiate the new core
-#include "sim_tinyx313.h"
+#include "sim_tinyx313a.h"
 
 static avr_t * make()
 {

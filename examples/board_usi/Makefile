@@ -30,6 +30,7 @@ VPATH = .
 VPATH += ../parts
 
 LDFLAGS += -lpthread
+CFLAGS += -ggdb2 -O0
 
 all: obj ${firmware} ${target}
 

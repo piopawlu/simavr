@@ -22,7 +22,7 @@
 
 #include "sim_avr.h"
 
-#include "sim_tinyx313.h"
+#include "sim_tinyx313a.h"
 
 void tx313_init(struct avr_t * avr)
 {

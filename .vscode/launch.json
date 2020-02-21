@@ -8,13 +8,18 @@
             "name": "debug attiny4313_usi",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/usi",
+            "program": "${workspaceFolder}/examples/board_usi/usi",
             "args": ["attiny4313_usi.axf", "attiny4313", "500000"],
-            "stopAtEntry": false,
+            "stopAtEntry": true,
             "cwd": "${fileDirname}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "lldb",
+            "logging": {
+                "trace": true,
+                "traceResponse": true,
+                "engineLogging": true
+              }
         }
     ]
 }

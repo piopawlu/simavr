@@ -148,6 +148,8 @@ static uint8_t avr_usi_read_usisr(struct avr_t * avr, avr_io_addr_t addr, void *
 	// bit 4 (USIDC) is computed from register and pin
 	// TODO: that^
 
+	v |= (p->in_bit0 ^ p->r_usidr) >> 3;
+
 	DBG(printf("USI ------------------- avr_usi_read_usisr = %02x\n", v));
 	return v;
 }
