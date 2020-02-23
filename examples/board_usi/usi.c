@@ -37,6 +37,7 @@ uint8_t	pin_state = 0;	// current port B
 #define USI_DO_BIT 6
 #define USI_DI_BIT 5
 #define NRF24L01_CS 4
+#define BME280_POWER 6
 
 /*
  * called when the AVR change any of the pins on port B
@@ -47,6 +48,11 @@ void pin_changed_hook(struct avr_irq_t * irq, uint32_t value, void * param)
 	pin_state = (pin_state & ~(1 << irq->irq)) | (value << irq->irq);
 
 	printf("PINB=%02x\n", value & 0x0FF);
+}
+
+void pin_changed_hook_d(struct avr_irq_t * irq, uint32_t value, void * param)
+{
+    printf("PIND%d=%d\n", irq->irq, value);
 }
 
 void usi_dr_change_hook(struct avr_irq_t * irq, uint32_t value, void * param)
@@ -86,16 +92,20 @@ int main(int argc, char *argv[])
 	avr_init(avr);
 	avr_load_firmware(avr, &f);
 
-	avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_SCK_BIT), pin_changed_hook, NULL);
-	avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DO_BIT), pin_changed_hook, NULL);
-	avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DI_BIT), pin_changed_hook, NULL);
-	avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), NRF24L01_CS), pin_changed_hook, NULL);
+	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_SCK_BIT), pin_changed_hook, NULL);
+	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DO_BIT), pin_changed_hook, NULL);
+	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DI_BIT), pin_changed_hook, NULL);
+	
+    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), NRF24L01_CS), pin_changed_hook, NULL);
+    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('D'), BME280_POWER), pin_changed_hook_d, NULL);
+    
 
 	// avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_USI_GETIRQ(), )
 
 	// even if not setup at startup, activate gdb if crashing
 	avr->gdb_port = 1234;
-	if (1) {
+    avr->frequency = (int)atoi(argv[3]);
+	if (0) {
 		avr->state = cpu_Stopped;
 		avr_gdb_init(avr);
 	}

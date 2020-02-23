@@ -92,7 +92,10 @@ int main()
 
 	while(1){
 		pcbi(PORTB,CS_BIT);
-		usi_spi_transmit_msb(0xAA);
+		usi_spi_transmit_msb(0xA1);
+        usi_spi_transmit_msb(0xA2);
+        usi_spi_transmit_msb(0xA3);
+        usi_spi_transmit_msb(0xA4);
 		psbi(PORTB,CS_BIT);
 		_delay_ms(1000);
 	}
