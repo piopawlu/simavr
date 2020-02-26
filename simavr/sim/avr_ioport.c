@@ -44,7 +44,8 @@ avr_ioport_read(
 
 static void
 avr_ioport_update_irqs(
-		avr_ioport_t * p)
+		avr_ioport_t * p,
+        uint8_t changed_mask)
 {
 	avr_t * avr = p->io.avr;
 	uint8_t ddr = avr->data[p->r_ddr];
@@ -53,6 +54,11 @@ avr_ioport_update_irqs(
 	// otherwise, if the PORT pin was 1 to indicate an
 	// internal pullup, set that.
 	for (int i = 0; i < 8; i++) {
+
+        if( !(changed_mask & (1 << i)) ) {
+            continue;
+        }
+
 		if (ddr & (1 << i))
 			avr_raise_irq(p->io.irq + i, (avr->data[p->r_port] >> i) & 1);
 		else if (p->external.pull_mask & (1 << i))
@@ -82,11 +88,12 @@ avr_ioport_write(
 		void * param)
 {
 	avr_ioport_t * p = (avr_ioport_t *)param;
+    uint8_t changed_mask = avr->data[addr] ^ v;
 
-	D(if (avr->data[addr] != v) printf("** PORT%c(%02x) = %02x\r\n", p->name, addr, v);)
+	D(if (changed_mask) printf("** PORT%c(%02x) = %02x\r\n", p->name, addr, v);)
 	avr_core_watch_write(avr, addr, v);
 	avr_raise_irq(p->io.irq + IOPORT_IRQ_REG_PORT, v);
-	avr_ioport_update_irqs(p);
+	avr_ioport_update_irqs(p, changed_mask);
 }
 
 /*
@@ -118,12 +125,13 @@ avr_ioport_ddr_write(
 		void * param)
 {
 	avr_ioport_t * p = (avr_ioport_t *)param;
+    uint8_t changed_mask = v ^ avr->data[addr];
 
-	D(if (avr->data[addr] != v) printf("** DDR%c(%02x) = %02x\r\n", p->name, addr, v);)
+	D(if (changed_mask) printf("** DDR%c(%02x) = %02x\r\n", p->name, addr, v);)
 	avr_raise_irq(p->io.irq + IOPORT_IRQ_DIRECTION_ALL, v);
-	avr_core_watch_write(avr, addr, v);
 
-	avr_ioport_update_irqs(p);
+	avr_core_watch_write(avr, addr, v);
+	avr_ioport_update_irqs(p, changed_mask);
 }
 
 /*
