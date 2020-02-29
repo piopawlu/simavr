@@ -65,10 +65,6 @@ static void _avr_usi_set_usidr(struct avr_t * avr, avr_usi_t * p, uint8_t new_va
 	DBG(printf("USI ------------------- 	USIDR new value 0x%02X\n", new_val));
 	bool top_set = avr->data[p->r_usidr] & 0x80;
 	avr_core_watch_write(avr, p->r_usidr, new_val);
-    
-    if( (avr->data[0x12] & (1 << 1)) == 0) {
-        putchar(new_val);
-    }
 
 	switch(avr_regbit_get(avr, p->usiwm)) {
 		case USI_WM_THREEWIRE:
