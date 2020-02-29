@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
+add_compile_definitions(CONFIG_SIMAVR_TRACE=1)
+
 add_subdirectory(sim EXCLUDE_FROM_ALL)
 add_subdirectory(cores EXCLUDE_FROM_ALL)
 
