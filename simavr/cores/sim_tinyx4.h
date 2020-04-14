@@ -32,6 +32,12 @@
 #include "avr_adc.h"
 #include "avr_timer.h"
 #include "avr_acomp.h"
+#include "avr_usi.h"
+
+#define SCL_BIT 4
+#define DO_BIT 5
+#define DI_BIT 6
+
 
 void tx4_init(struct avr_t * avr);
 void tx4_reset(struct avr_t * avr);
@@ -48,6 +54,7 @@ struct mcu_t {
     avr_acomp_t		acomp;
     avr_adc_t        adc;
     avr_timer_t    timer0, timer1;
+    avr_usi_t		usi;
 };
 
 #ifdef SIM_CORENAME
@@ -271,6 +278,8 @@ const struct mcu_t SIM_CORENAME = {
             },
         },
     },
+
+    AVR_USI_DECLARE('A', PORTA, DI_BIT, DO_BIT, SCL_BIT),
 };
 #endif /* SIM_CORENAME */
 
