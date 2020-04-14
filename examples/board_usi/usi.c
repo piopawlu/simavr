@@ -24,6 +24,8 @@
 #include <libgen.h>
 #include <pthread.h>
 #include <string.h>
+#include <time.h>
+#include <unistd.h>
 
 #include "sim_avr.h"
 #include "avr_ioport.h"
@@ -31,21 +33,30 @@
 #include "sim_gdb.h"
 #include "avr_usi.h"
 
-#define USI_SCK_BIT 7
-#define USI_DO_BIT 6
-#define USI_DI_BIT 5
+#define USI_SCK_BIT 4
+#define USI_DO_BIT 5
+#define USI_DI_BIT 6
+#define USI_PORT_LETTER 'A'
 
-#define NRF24L01_CS 3
-#define NRF24L01_CE 2
+#define NRF24L01_CS 0
+#define NRF24L01_CE 1
+#define NRF_PORT_LETTER 'A'
 
-#define BME280_CS 5
-#define BME280_POWER 6
+#define BME280_CS 0
+#define BME280_POWER 1
+#define BME280_PORT_LETTER 'B'
 
-#define TEXT_CS 1
+#define TEXT_CS 3
+#define TEXT_PORT_LETTER 'B'
+
+#define PWM_PORT_LETTER 'A'
+#define PWM_PWR_BIT 3
+#define PWM_PWM_BIT 7
 
 struct thread_param {
     avr_t* avr;
     int working;
+    int int0;
 };
 
 enum spi_mode {
@@ -73,7 +84,7 @@ int text_out_enabled = 0;
 
 void pin_changed_hook_nrf24l01_cs(struct avr_irq_t * irq, uint32_t value, void * param)
 {
-	printf("PINB%d=%d\n", irq->irq, value);
+	printf("PIN%c%d=%d\n", NRF_PORT_LETTER, irq->irq, value);
 
     if( (value << irq->irq) & (1 << NRF24L01_CS) ) {
          current_spi_device = NULL;
@@ -86,7 +97,7 @@ void pin_changed_hook_nrf24l01_cs(struct avr_irq_t * irq, uint32_t value, void *
 
 void pin_changed_hook_bme280_cs(struct avr_irq_t * irq, uint32_t value, void * param)
 {
-    printf("PIND%d=%d\n", irq->irq, value);
+    printf("PIN%c%d=%d\n", BME280_PORT_LETTER, irq->irq, value);
 
     if( (value << irq->irq) & (1 << BME280_CS) ) {
         current_spi_device = NULL;
@@ -108,6 +119,11 @@ void pin_changed_hook_text_cs(struct avr_irq_t * irq, uint32_t value, void * par
         current_spi_device->addr_set = 1;
         current_spi_device->status_read = 1;
     }
+}
+
+void pin_changed_hook_PWM(struct avr_irq_t * irq, uint32_t value, void * param)
+{
+	printf("PIN%c%d=%d\n", PWM_PORT_LETTER, irq->irq, value);
 }
 
 void usi_dr_change_hook(struct avr_irq_t * irq, uint32_t value, void * param)
@@ -189,8 +205,19 @@ static void * avr_run_thread(void * param)
 {
 	struct thread_param* wp = (struct thread_param*)(param);
 
-	while (wp->working) {
+    int int0 = 0;
+
+    const char* int0_name = "INT0";
+
+    avr_irq_t *irq = avr_alloc_irq(&wp->avr->irq_pool, 0, 1, &int0_name);
+    avr_connect_irq(irq, avr_io_getirq(wp->avr, AVR_IOCTL_IOPORT_GETIRQ('B'), 2));
+
+	while (wp->working && wp->avr->state < cpu_Done ) {
 		avr_run(wp->avr);
+        if( wp->int0 != int0 ) {
+            int0 = wp->int0;
+            avr_raise_irq(irq, !int0);
+        }
 	}
 	return NULL;
 }
@@ -219,13 +246,16 @@ int main(int argc, char *argv[])
 	avr_load_firmware(avr, &f);
     avr->trace = 0;
 
-	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_SCK_BIT), pin_changed_hook, NULL);
-	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DO_BIT), pin_changed_hook, NULL);
-	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), USI_DI_BIT), pin_changed_hook, NULL);
+	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(USI_PORT_LETTER), USI_SCK_BIT), pin_changed_hook, NULL);
+	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(USI_PORT_LETTER), USI_DO_BIT), pin_changed_hook, NULL);
+	//avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(USI_PORT_LETTER), USI_DI_BIT), pin_changed_hook, NULL);
 	
-    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('B'), NRF24L01_CS), pin_changed_hook_nrf24l01_cs, NULL);
-    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('D'), BME280_CS), pin_changed_hook_bme280_cs, NULL);
-    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ('D'), TEXT_CS), pin_changed_hook_text_cs, NULL);
+    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(NRF_PORT_LETTER), NRF24L01_CS), pin_changed_hook_nrf24l01_cs, NULL);
+    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(BME280_PORT_LETTER), BME280_CS), pin_changed_hook_bme280_cs, NULL);
+    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(TEXT_PORT_LETTER), TEXT_CS), pin_changed_hook_text_cs, NULL);
+
+    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(PWM_PORT_LETTER), PWM_PWR_BIT), pin_changed_hook_PWM, NULL);
+    avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_IOPORT_GETIRQ(PWM_PORT_LETTER), PWM_PWM_BIT), pin_changed_hook_text_cs, NULL);
 
     avr_irq_register_notify(avr_io_getirq(avr, AVR_IOCTL_USI_GETIRQ(), 0), usi_data_written, avr);
 
@@ -253,12 +283,16 @@ int main(int argc, char *argv[])
 	}
 
 	pthread_t run;
-	struct thread_param tp = { avr, 1};
+	struct thread_param tp = { avr, 1, 0};
 	pthread_create(&run, NULL, avr_run_thread, &tp);
 
-	while( fgetc(stdin) != 'q' ) {
-		puts("Press 'q' to quit");
-	}
+	while ( 1 ) {
+        sleep(20);
+        puts(">>INT0");
+        tp.int0 = 1;
+        usleep(200000);
+        tp.int0 = 0;
+    }
 
 	tp.working = 0;
 
